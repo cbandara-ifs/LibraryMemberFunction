@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "LibraryMemberFunction": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7130 --no-https",
+      "launchBrowser": false
+    }
+  }
+}
