@@ -1,9 +1,12 @@
 using LibraryMemberFunction;
+using LibraryMemberFunction.Application;
+using LibraryMemberFunction.Application.Services;
+using LibraryMemberFunction.Data;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWebApplication()
@@ -12,24 +15,19 @@ var host = new HostBuilder()
         config.SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .AddEnvironmentVariables();
-
-        config.Build();
     })
-    .ConfigureServices((config, services) => {
+    .ConfigureServices((context, services) => {
+
+        var configuration = context.Configuration;
+
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
-        services.AddDbContext<PubDb>(
-            opt => opt.UseSqlServer(config.Configuration.GetConnectionString("PubConnection"))
-            .EnableSensitiveDataLogging()
-            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
-        services.AddScoped<IMemberRepository, MemberRepository>();
-            })
-    .Build();
 
-await using (var scope = host.Services.CreateAsyncScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<PubDb>();
-    await db.Database.EnsureCreatedAsync();
-}
+        services.AddScoped<IMongoDbExecuter, MongoDbExecuter>();
+        services.AddScoped<ILibraryMemberService, LibraryMemberService>();
+
+        services.AddDatabaseSettings(configuration);
+    })
+    .Build();
 
 await host.RunAsync();
